@@ -16,23 +16,23 @@ Por este motivo, se propone diseñar y desarrollar una aplicación web que permi
 
 **CU01 - Consultar criptomonedas.** El usuario visualiza las criptomonedas disponibles y sus precios actuales, junto con la hora de su última actualización. Los precios se sirven desde una caché compartida alimentada por una API externa.
 
-**CU02 - Comprar activo.** El usuario compra una cantidad de una criptomoneda al precio actual si dispone de saldo suficiente. La operación descuenta el saldo, actualiza la posición, recalcula el precio medio de compra y se registra en el historial.
+**CU02 - Comprar activo.** El usuario compra una cantidad de una criptomoneda al precio actual si dispone de saldo suficiente. La operación descuenta el saldo, recalcula el precio medio de compra y aumenta la cantidad poseída.
 
-**CU03 - Vender activo.** El usuario vende hasta la cantidad que posea al precio actual. La operación incrementa el saldo, reduce la posición y se registra en el historial junto con la ganancia o pérdida realizada.
+**CU03 - Vender activo.** El usuario vende la cantidad deseada de criptomonedas en su posesión. La operación incrementa el saldo, reduce la cantidad que tiene y se registra la ganancia o pérdida realizada.
 
-**CU04 - Registrarse e iniciar sesión.** Los usuarios nuevos crean una cuenta con nombre de usuario y contraseña, y los registrados inician sesión para acceder a su cartera.
+**CU04 - Registrarse e iniciar sesión.** Los usuarios nuevos crean una cuenta con nombre de usuario y contraseña, y los registrados inician sesión para acceder a su cartera. Todos los usuarios reciben un saldo virtual de 10,000 EUR.
 
 **CU05 - Consultar cartera.** El usuario consulta su saldo y sus activos. Para cada activo se calcula el precio medio de compra, el valor actual y la ganancia o pérdida (absoluta y porcentual), además del valor total de la cartera.
 
-**CU06 - Recargar saldo.** El usuario puede añadir saldo virtual cuando el suyo sea inferior a un umbral, con un máximo por recarga.
+**CU06 - Recargar saldo.** El usuario puede añadir saldo virtual cuando el suyo sea inferior a 100 EUR. Como máximo puede recargar hasta 10,000 EUR.
 
-**CU07 - Actualizar precios (sistema).** El Market Service consulta periódicamente la API externa y actualiza la caché compartida que consumen los usuarios y el Trading Service.
+**CU07 - Actualizar precios (sistema).** El Market Service consulta periódicamente la API externa y actualiza la caché compartida. El market service leerá de esta caché para proporcionar esa información a los usuarios mientras que el Trading service lo utilizará para obtener los precios necesarios para simular las operaciones compra y venta.
 
 ## 3. Características Cloud según NIST SP 800-145 y Justificación del uso de la nube
 
 ### 3.1 Autoservicio bajo demanda
 
-Para mi aplicación de simulación de trading de criptomonedas, el autoservicio bajo demanda permitirá aprovisionar y configurar los recursos necesarios para desplegar la aplicación sin intervención directa del proveedor. En concreto, el simulador requiere aprovisionar recursos como máquinas virtuales (para la ejecución de microservicios en contenedores), una base de datos, una caché (Redis para la consulta de precios) y la red. Se crearán estos recursos de forma automática mediante infraestructura como código (IaC) con Terraform sin solicitar recursos al proveedor.
+Para mi aplicación de simulación de trading de criptomonedas, el autoservicio bajo demanda permitirá aprovisionar y configurar los recursos necesarios para desplegar la aplicación sin intervención directa del proveedor. En concreto, el simulador requiere aprovisionar recursos como máquinas virtuales (para la ejecución de microservicios en contenedores), una base de datos, una caché (Redis para la consulta de precios) y la red. Se crearán estos recursos de forma automática mediante infraestructura como código (IaC) con Terraform.
 
 ### 3.2 Acceso amplio a la red
 
@@ -76,33 +76,29 @@ Otro motivo por el que utilizar la infraesrtructura cloud es debido a la disponi
 
 ### 5.1 Diagrama de arquitectura
 
-### 5.1 Diagrama de arquitectura
-
 A continuación se muestra el diagrama de arquitectura del sistema, con los componentes, los microservicios y los protocolos de comunicación entre ellos.
 
-```mermaid
 flowchart TB
     U["Usuario"]
     CLI["Cliente (navegador o herramienta HTTP)"]
     EXT["API externa de precios"]
 
-    subgraph AWS["AWS - máquinas virtuales EC2 (aprovisionadas con Terraform)"]
+    subgraph AWS["AWS"]
         PROXY["Proxy inverso"]
         MARKET["Market Service"]
         TRADING["Trading Service"]
         REDIS[("Redis - caché de precios")]
-        DB[("PostgreSQL - usuarios, saldos y posiciones")]
+        DB[("PostgreSQL - usuarios, saldos, cantidad criptos")]
     end
 
     U --> CLI
-    CLI -->|"HTTPS"| PROXY
+    CLI -->|"HTTP"| PROXY
     PROXY -->|"HTTP /api/market"| MARKET
     PROXY -->|"HTTP /api/*"| TRADING
     MARKET -->|"HTTPS - consulta periódica"| EXT
-    MARKET -->|"Redis sobre TCP - escritura"| REDIS
+    MARKET -->|"Redis sobre TCP - escritura y lectura"| REDIS
     TRADING -->|"Redis sobre TCP - lectura"| REDIS
     TRADING -->|"PostgreSQL sobre TCP"| DB
-```
 
 ### 5.2 Componentes
 
@@ -118,138 +114,22 @@ El simulador será una arquitectura basado en microservicios. En concreto, estar
 
 - Caché Compartida: Con el fin de reducir un elevado número de peticiones a la API externa se ha optado por incluir una caché compartida para almacenar los últimos precios obtenidos para evitar sobrecargar la API externa. Esta caché se implementará mediante Redis.
 
+- Proxy Inverso: Se encargará de enrutar las peticiones del cliente en función del prefijo de la ruta. 
+
 ### 5.3 Comunicación entre Microservicios
 
-- Ambos microservicios (Trading Service y Market Service) se comunicará mediante peticiones HTTP a la API REST interna del servicio correspondiente. 
+- Cliente y Servicios: El cliente accedrá mediante HTTP a un proxy inverso que enrutará las peticiones en función del prefijo.
 
-- El servicio de mercado (Market Service) se comunicará a través del protocolo HTTP a una API externa que proporcionará los precios actuales de las criptomonedas.
+- Entre microservicios: Los microservicios no se comunicarán de forma directa, es decir, el Market Service escribirá los precios en la caché y el trading service los leerá permitiendo un cierto desacoplamiento entre microservicios. 
 
-- Ambos microservicios comunicarán con la caché compartida mediante el protocolo Redis sobre TCP. 
+- Caché (Redis): Market Service y Trading Service accederán a la caché compartida mediante el protocolo Redis.
 
-- El acceso a la base de datos se realizará mediante el protocolo nativo TCP para la gestión de los datos de la aplicación.
+-Market Service y API externa: El servicio de mercado consultará de forma periodica la API externa para obtener los precios actuales a través del protocolo HTTPS.
 
-## 6. Especificación de la API REST
+- Base de Datos: Trading Service accederá a la base de datos PostgreSQL a través del protocolo PostgreSQL sobre TCP. El Market Service no accederá a la base de datos porque únicamente se encargará de obtener los precios de las criptomonedas.  
 
-Ambos servicios exponen una API REST sobre HTTP con payloads en JSON. Un proxy inverso situado delante de ellos enruta las peticiones por prefijo: `/api/market/*` al Market Service y el resto de rutas `/api/*` al Trading Service. Los endpoints del Trading Service, salvo el registro y el inicio de sesión, requieren un token JWT en la cabecera `Authorization: Bearer <token>`. El usuario se identifica siempre a partir del token, nunca por un parámetro de la petición, lo que garantiza que cada usuario solo accede a sus propios datos.
 
-### 6.1 Market Service
 
-| Método | Ruta | Descripción | Caso de uso |
-|---|---|---|---|
-| GET | `/api/market/prices` | Lista las criptomonedas disponibles con su precio actual | CU01 |
-| GET | `/api/market/prices/{symbol}` | Precio actual de una criptomoneda | CU01 |
-| GET | `/health` | Estado del servicio | — |
 
-Los precios se leen de la caché compartida (Redis). La actualización periódica desde la API externa (CU07) es un proceso interno del servicio y no expone ningún endpoint.
-
-**`GET /api/market/prices` → 200**
-
-```json
-{
-  "updatedAt": "2026-10-17T10:30:00Z",
-  "prices": [
-    { "symbol": "BTC", "name": "Bitcoin", "priceEur": 61250.40 },
-    { "symbol": "ETH", "name": "Ethereum", "priceEur": 2480.15 }
-  ]
-}
-```
-
-### 6.2 Trading Service
-
-| Método | Ruta | Descripción | Caso de uso | Auth |
-|---|---|---|---|---|
-| POST | `/api/auth/register` | Registra un usuario nuevo | CU04 | No |
-| POST | `/api/auth/login` | Inicia sesión y devuelve un token JWT | CU04 | No |
-| GET | `/api/portfolio` | Saldo, activos, precio medio, valor actual y ganancia o pérdida | CU05 | Sí |
-| POST | `/api/operations` | Ejecuta una compra o una venta | CU02, CU03 | Sí |
-| POST | `/api/wallet/deposit` | Añade saldo virtual | CU06 | Sí |
-| GET | `/health` | Estado del servicio | — | No |
-
-**`POST /api/auth/register` → 201**
-
-```json
-// Petición
-{ "username": "ana", "password": "********" }
-
-// Respuesta
-{ "id": 1, "username": "ana", "balanceEur": 10000.00 }
-```
-
-**`POST /api/auth/login` → 200**
-
-```json
-// Petición
-{ "username": "ana", "password": "********" }
-
-// Respuesta
-{ "token": "eyJhbGciOi...", "expiresIn": 3600 }
-```
-
-**`POST /api/operations` (compra) → 201**
-
-El precio lo fija el servidor a partir de la caché; el cliente solo envía el símbolo, el tipo y la cantidad.
-
-```json
-// Petición
-{ "symbol": "BTC", "type": "BUY", "quantity": 0.01 }
-
-// Respuesta
-{
-  "id": 42,
-  "symbol": "BTC",
-  "type": "BUY",
-  "quantity": 0.01,
-  "priceEur": 61250.40,
-  "totalEur": 612.50,
-  "realizedPnlEur": null,
-  "createdAt": "2026-10-17T10:31:05Z"
-}
-```
-
-En una venta, `type` es `SELL` y `realizedPnlEur` contiene la ganancia o pérdida realizada.
-
-**`GET /api/portfolio` → 200**
-
-```json
-{
-  "balanceEur": 9387.50,
-  "assets": [
-    {
-      "symbol": "BTC",
-      "quantity": 0.01,
-      "avgBuyPriceEur": 61250.40,
-      "currentPriceEur": 62000.00,
-      "currentValueEur": 620.00,
-      "pnlEur": 7.50,
-      "pnlPercent": 1.22
-    }
-  ],
-  "totalValueEur": 10007.50
-}
-```
-
-**`POST /api/wallet/deposit` → 200**
-
-Solo se permite si el saldo es inferior a 100 € y con un máximo de 10.000 € por recarga.
-
-```json
-// Petición
-{ "amountEur": 5000 }
-
-// Respuesta
-{ "balanceEur": 5042.30 }
-```
-
-### 6.3 Códigos de error
-
-| Código | Cuándo se devuelve |
-|---|---|
-| 400 | Datos inválidos (cantidad negativa, símbolo desconocido) |
-| 401 | Token ausente, inválido o caducado; credenciales incorrectas |
-| 409 | El nombre de usuario ya existe |
-| 422 | Regla de negocio incumplida (saldo insuficiente, unidades insuficientes, recarga no permitida) |
-| 503 | Precios no disponibles temporalmente |
-
-Los errores devuelven un cuerpo con la forma `{ "error": "INSUFFICIENT_BALANCE", "message": "..." }`.
 
 
