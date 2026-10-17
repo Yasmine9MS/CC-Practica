@@ -78,9 +78,10 @@ Otro motivo por el que utilizar la infraesrtructura cloud es debido a la disponi
 
 A continuación se muestra el diagrama de arquitectura del sistema, con los componentes, los microservicios y los protocolos de comunicación entre ellos.
 
+```mermaid
 flowchart TB
     U["Usuario"]
-    CLI["Cliente (navegador o herramienta HTTP)"]
+    CLI["Cliente web o herramienta HTTP"]
     EXT["API externa de precios"]
 
     subgraph AWS["AWS"]
@@ -88,17 +89,19 @@ flowchart TB
         MARKET["Market Service"]
         TRADING["Trading Service"]
         REDIS[("Redis - caché de precios")]
-        DB[("PostgreSQL - usuarios, saldos, cantidad criptos")]
+        DB[("PostgreSQL - usuarios, saldos y activos")]
     end
 
     U --> CLI
     CLI -->|"HTTP"| PROXY
-    PROXY -->|"HTTP /api/market"| MARKET
-    PROXY -->|"HTTP /api/*"| TRADING
+    PROXY -->|"/api/market/*"| MARKET
+    PROXY -->|"/api/*"| TRADING
+
     MARKET -->|"HTTPS - consulta periódica"| EXT
-    MARKET -->|"Redis sobre TCP - escritura y lectura"| REDIS
+    MARKET <-->|"Redis sobre TCP - lectura y escritura"| REDIS
     TRADING -->|"Redis sobre TCP - lectura"| REDIS
     TRADING -->|"PostgreSQL sobre TCP"| DB
+```
 
 ### 5.2 Componentes
 
