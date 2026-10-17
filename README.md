@@ -32,7 +32,7 @@ Por este motivo, se propone diseñar y desarrollar una aplicación web que permi
 
 ### 3.1 Autoservicio bajo demanda
 
-Para mi aplicación de simulación de trading de criptomonedas, el autoservicio bajo demanda permitirá aprovisionar y configurar los recursos necesarios para desplegar la aplicación sin intervención directa del proveedor. En concreto, el simulador requiere aprovisionar recursos como máquinas virtuales (para la ejecución de microservicios en contenedores), una base de datos, una caché (Redis para la consulta de precios) y la red. Se crearán estos recursos de forma automática mediante infraestructura como código (IaC) con Terraform.
+Para mi aplicación de simulación de trading de criptomonedas, el autoservicio bajo demanda permitirá aprovisionar y configurar los recursos necesarios para desplegar la aplicación sin intervención directa del proveedor. En concreto, el simulador requiere aprovisionar recursos como máquinas virtuales (para la ejecución de microservicios en contenedores), sobre ella se despliegan una base de datos y una caché (Redis para la consulta de precios). Se crearán estos recursos de forma automática mediante infraestructura como código (IaC) con Terraform.
 
 ### 3.2 Acceso amplio a la red
 
@@ -68,7 +68,7 @@ Otro motivo por el que utilizar la infraesrtructura cloud es debido a la disponi
 | **Cloud Consumer** | El consumidor en este contexto sería el desarrollador de la plataforma que utiliza los recursos del proveedor necesarios para desplegar la aplicación.| En este caso, el impacto económico será prácticamente nulo ya que se empleará la capa gratuita de AWS respetando sus límites de uso. |
 | **Cloud Provider** | El proveedor proporcionará la infraestructura y servicios de la nube necesarios para ejecutar el simulador. En este caso el proveedor de la infraestructura será AWS. | El uso del plan gratuito permitirá reducir los costes de infraestructura. Se respetarán las condiciones y límites para evitar cargos adicionales. Cabe mencionar, que el plan gratuito proporciona |
 | **Cloud Broker** | En este caso, no habrá cloud broker ya que contactamos directamente con el proveedor. | Al no contratar servicios de un intermediario no habrán costes asociados. |
-| **Cloud Auditor** | Este proyecto no contará con un auditor externo por lo que el desarrollador se hará responsable de realizar comprobaciones de seguridad además de asegurar el cumplimiento de RGPD y la LOPDGDD. | No habrá gastos de contratación de auditorías externas sin embargo, las comprobaciones internas requerirán la inversión de tiempo de trabajo. |
+| **Cloud Auditor** | Este proyecto no contará con un auditor externo por lo que el desarrollador se hará responsable de realizar comprobaciones de seguridad. | No habrá gastos de contratación de auditorías externas sin embargo, las comprobaciones internas requerirán la inversión de tiempo de trabajo. |
 | **Cloud Carrier / Operator** | Los operadores de telecomunicaciones y proveedores de acceso a internest además de la red del proveedor permitirán transportar el tráfico entre los usuarios del simulador y la infraestuctura nube. | Se utilizará la conexión a internet ya disponible sin necesidad de contratar una conexión adicional para el proyecto. |
 
 
@@ -131,29 +131,67 @@ El simulador será una arquitectura basado en microservicios. En concreto, estar
 
 - Base de Datos: Trading Service accederá a la base de datos PostgreSQL a través del protocolo PostgreSQL sobre TCP. El Market Service no accederá a la base de datos porque únicamente se encargará de obtener los precios de las criptomonedas.  
 
+
 ## 6. Especificación de la API REST
 
-### 6.1 Market Service
+### 6.1. Market Service
+
+Este servicio proporciona información sobre las criptomonedas disponibles y sus precios actuales, obtenidos de la caché compartida Redis.
 
 | Método HTTP | Endpoint | Descripción |
 |---|---|---|
-| GET | `/api/market/cryptocurrencies` | Consultar las criptomonedas disponibles y sus precios actuales. |
-| GET | `/api/market/cryptocurrencies/{symbol}` | Consultar el precio de una criptomoneda concreta. |
+| `GET` | `/api/market/cryptocurrencies` | Devuelve las criptomonedas disponibles, sus precios y la fecha de última actualización. |
+| `GET` | `/api/market/cryptocurrencies/{symbol}` | Devuelve el precio y la fecha de última actualización de una criptomoneda concreta, identificada por su símbolo. |
 
-### 6.2 Trading Service
+**Ejemplo de respuesta:** `GET /api/market/cryptocurrencies`
+
+```json
+{
+  "cryptocurrencies": [
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "price": 65000.00,
+      "currency": "EUR",
+      "lastUpdated": "2026-10-17T18:30:00Z"
+    },
+    {
+      "symbol": "ETH",
+      "name": "Ethereum",
+      "price": 2500.00,
+      "currency": "EUR",
+      "lastUpdated": "2026-10-17T18:30:00Z"
+    }
+  ]
+}
+```
+
+**Ejemplo de respuesta:** `GET /api/market/cryptocurrencies/BTC`
+
+```json
+{
+  "symbol": "BTC",
+  "name": "Bitcoin",
+  "price": 65000.00,
+  "currency": "EUR",
+  "lastUpdated": "2026-10-17T18:30:00Z"
+}
+```
+
+Si el símbolo solicitado no existe, el servicio devolverá `404 Not Found`.
+
+### 6.2. Trading Service
+
+Este servicio gestiona los usuarios, sus saldos virtuales, las posiciones de criptomonedas y las operaciones de compraventa. Los endpoints que requieren una sesión autenticada utilizarán el encabezado `Authorization: Bearer <token>`.
+
+#### 6.2.1. Registro e inicio de sesión
 
 | Método HTTP | Endpoint | Descripción |
 |---|---|---|
-| POST | `/api/auth/register` | Registrar un usuario. |
-| POST | `/api/auth/login` | Iniciar sesión. |
-| GET | `/api/portfolio` | Consultar la cartera virtual. |
-| POST | `/api/trades/buy` | Comprar una criptomoneda. |
-| POST | `/api/trades/sell` | Vender una criptomoneda. |
-| POST | `/api/balance/recharge` | Recargar el saldo virtual. |
+| `POST` | `/api/auth/register` | Registra un nuevo usuario y le asigna un saldo inicial de 10.000 EUR virtuales. |
+| `POST` | `/api/auth/login` | Comprueba las credenciales e inicia la sesión del usuario. |
 
-### 6.3 Payloads JSON
-
-**Registro e inicio de sesión**
+**Petición de registro:** `POST /api/auth/register`
 
 ```json
 {
@@ -162,7 +200,80 @@ El simulador será una arquitectura basado en microservicios. En concreto, estar
 }
 ```
 
-**Compra y venta de criptomonedas**
+**Respuesta satisfactoria:** `201 Created`
+
+```json
+{
+  "userId": 1,
+  "username": "usuario1",
+  "balance": 10000.00,
+  "currency": "EUR"
+}
+```
+
+**Petición de inicio de sesión:** `POST /api/auth/login`
+
+```json
+{
+  "username": "usuario1",
+  "password": "contraseña"
+}
+```
+
+**Respuesta satisfactoria:**
+
+```json
+{
+  "accessToken": "<token>",
+  "tokenType": "Bearer"
+}
+```
+
+Las credenciales incorrectas producirán una respuesta `401 Unauthorized` durante el inicio de sesión. El registro de un nombre de usuario ya existente producirá `409 Conflict`.
+
+#### 6.2.2. Consultar la cartera virtual
+
+| Método HTTP | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/api/portfolio` | Devuelve el saldo disponible, las posiciones de criptomonedas y el valor total de la cartera del usuario autenticado. |
+
+Este endpoint no requiere un cuerpo de petición, pero sí autenticación.
+
+**Ejemplo de respuesta:**
+
+```json
+{
+  "balance": 9350.00,
+  "currency": "EUR",
+  "assets": [
+    {
+      "symbol": "BTC",
+      "quantity": 0.01,
+      "averageBuyPrice": 60000.00,
+      "currentPrice": 65000.00,
+      "currentValue": 650.00,
+      "profitLoss": 50.00,
+      "profitLossPercentage": 8.33
+    }
+  ],
+  "totalPortfolioValue": 10000.00
+}
+```
+
+El valor total de la cartera se calculará sumando el saldo disponible y el valor actual de todas las monedas en posesión. Las ganancias o pérdidas no realizadas se calcularán comparando el precio actual con el precio medio de compra.
+
+#### 6.2.3. Comprar y vender criptomonedas
+
+| Método HTTP | Endpoint | Descripción |
+|---|---|---|
+| `POST` | `/api/trades/buy` | Compra una cantidad de criptomoneda si el usuario dispone de saldo suficiente. |
+| `POST` | `/api/trades/sell` | Vende una cantidad de criptomoneda si el usuario posee suficientes unidades. |
+
+Ambos endpoints requieren autenticación.
+
+**Petición de compra:** `POST /api/trades/buy`
+
+**Petición de venta:** `POST /api/trades/sell`
 
 ```json
 {
@@ -171,7 +282,36 @@ El simulador será una arquitectura basado en microservicios. En concreto, estar
 }
 ```
 
-**Recarga de saldo**
+**Ejemplo de respuesta satisfactoria:**
+
+```json
+{
+  "tradeId": 101,
+  "symbol": "BTC",
+  "side": "BUY",
+  "quantity": 0.01,
+  "price": 65000.00,
+  "total": 650.00,
+  "currency": "EUR",
+  "status": "COMPLETED"
+}
+```
+
+En una operación de venta, el campo `side` tendrá el valor `SELL`. El precio y el importe total corresponderán al precio utilizado para ejecutar la operación.
+
+El servicio consultará Redis para obtener el precio de referencia y validará que la operación sea posible. La actualización del saldo, las posiciones y el registro de la operación se realizará de forma consistente en PostgreSQL.
+
+Las cantidades inválidas producirán `400 Bad Request`; la falta de saldo o de activos suficientes impedirá completar la operación. Las peticiones sin autenticación válida producirán `401 Unauthorized`.
+
+#### 6.2.4. Recargar el saldo virtual
+
+| Método HTTP | Endpoint | Descripción |
+|---|---|---|
+| `POST` | `/api/balance/recharge` | Añade saldo virtual al usuario si cumple las condiciones de recarga. |
+
+Este endpoint requiere autenticación.
+
+**Petición:**
 
 ```json
 {
@@ -179,7 +319,30 @@ El simulador será una arquitectura basado en microservicios. En concreto, estar
 }
 ```
 
+**Ejemplo de respuesta satisfactoria:**
 
+```json
+{
+  "previousBalance": 50.00,
+  "rechargedAmount": 1000.00,
+  "newBalance": 1050.00,
+  "currency": "EUR"
+}
+```
+
+La recarga solo estará permitida cuando el saldo disponible sea inferior a 100 EUR y el importe solicitado no haga que el nuevo saldo supere los 10.000 EUR. Si no se cumplen estas condiciones, la operación será rechazada.
+
+### 6.3. Códigos HTTP principales
+
+| Código HTTP | Significado | Aplicación |
+|---|---|---|
+| `200 OK` | Petición procesada correctamente. | Consultas, inicio de sesión y operaciones satisfactorias que devuelvan una respuesta normal. |
+| `201 Created` | Recurso creado correctamente. | Registro de un usuario. |
+| `400 Bad Request` | Petición inválida. | Cantidades nulas, negativas o datos obligatorios ausentes. |
+| `401 Unauthorized` | Autenticación ausente o inválida. | Acceso a endpoints protegidos o credenciales incorrectas. |
+| `404 Not Found` | Recurso inexistente. | Símbolo de criptomoneda desconocido. |
+| `409 Conflict` | Conflicto con el estado actual. | Nombre de usuario duplicado o conflicto de negocio que impida la operación. |
+| `500 Internal Server Error` | Error interno inesperado. | Fallo no controlado durante el procesamiento de una petición. |
 
 
 
