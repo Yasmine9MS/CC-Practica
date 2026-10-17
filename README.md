@@ -131,6 +131,53 @@ El simulador será una arquitectura basado en microservicios. En concreto, estar
 
 - Base de Datos: Trading Service accederá a la base de datos PostgreSQL a través del protocolo PostgreSQL sobre TCP. El Market Service no accederá a la base de datos porque únicamente se encargará de obtener los precios de las criptomonedas.  
 
+## 6. Especificación de la API REST
+
+### 6.1 Market Service
+
+| Método HTTP | Endpoint | Descripción |
+|---|---|---|
+| GET | `/api/market/cryptocurrencies` | Consultar las criptomonedas disponibles y sus precios actuales. |
+| GET | `/api/market/cryptocurrencies/{symbol}` | Consultar el precio de una criptomoneda concreta. |
+
+### 6.2 Trading Service
+
+| Método HTTP | Endpoint | Descripción |
+|---|---|---|
+| POST | `/api/auth/register` | Registrar un usuario. |
+| POST | `/api/auth/login` | Iniciar sesión. |
+| GET | `/api/portfolio` | Consultar la cartera virtual. |
+| POST | `/api/trades/buy` | Comprar una criptomoneda. |
+| POST | `/api/trades/sell` | Vender una criptomoneda. |
+| POST | `/api/balance/recharge` | Recargar el saldo virtual. |
+
+### 6.3 Payloads JSON
+
+**Registro e inicio de sesión**
+
+```json
+{
+  "username": "usuario1",
+  "password": "contraseña"
+}
+```
+
+**Compra y venta de criptomonedas**
+
+```json
+{
+  "symbol": "BTC",
+  "quantity": 0.01
+}
+```
+
+**Recarga de saldo**
+
+```json
+{
+  "amount": 1000.00
+}
+```
 
 
 
