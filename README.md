@@ -66,7 +66,7 @@ Otro motivo por el que utilizar la infraesrtructura cloud es debido a la disponi
 | Actor | Aplicación en el proyecto | Impacto económico |
 |---|---|---|
 | **Cloud Consumer** | El consumidor en este contexto sería el desarrollador de la plataforma que utiliza los recursos del proveedor necesarios para desplegar la aplicación.| En este caso, el impacto económico será prácticamente nulo ya que se empleará la capa gratuita de AWS respetando sus límites de uso. |
-| **Cloud Provider** | El proveedor proporcionará la infraestructura y servicios de la nube necesarios para ejecutar el simulador. En este caso el proveedor de la infraestructura será AWS. | El uso del plan gratuito permitirá reducir los costes de infraestructura. Se respetarán las condiciones y límites para evitar cargos adicionales. Cabe mencionar, que el plan gratuito proporciona |
+| **Cloud Provider** | El proveedor proporcionará la infraestructura y servicios de la nube necesarios para ejecutar el simulador. En este caso el proveedor de la infraestructura será AWS. | El uso del plan gratuito permitirá reducir los costes de infraestructura. Se respetarán las condiciones y límites para evitar cargos adicionales. Cabe mencionar, que se utilizarán los servicios incluidos en la capa gratuita de AWS, respetando los límites y comprobando posibles condiciones de facturación para evitar costes inesperados |
 | **Cloud Broker** | En este caso, no habrá cloud broker ya que contactamos directamente con el proveedor. | Al no contratar servicios de un intermediario no habrán costes asociados. |
 | **Cloud Auditor** | Este proyecto no contará con un auditor externo por lo que el desarrollador se hará responsable de realizar comprobaciones de seguridad. | No habrá gastos de contratación de auditorías externas sin embargo, las comprobaciones internas requerirán la inversión de tiempo de trabajo. |
 | **Cloud Carrier / Operator** | Los operadores de telecomunicaciones y proveedores de acceso a internest además de la red del proveedor permitirán transportar el tráfico entre los usuarios del simulador y la infraestuctura nube. | Se utilizará la conexión a internet ya disponible sin necesidad de contratar una conexión adicional para el proyecto. |
@@ -344,5 +344,22 @@ La recarga solo estará permitida cuando el saldo disponible sea inferior a 100 
 | `409 Conflict` | Conflicto con el estado actual. | Nombre de usuario duplicado o conflicto de negocio que impida la operación. |
 | `500 Internal Server Error` | Error interno inesperado. | Fallo no controlado durante el procesamiento de una petición. |
 
+## 7. Estrategia de ramas
 
+- `main`: rama principal con versiones estables del proyecto.
+- `feature/nombre-funcionalidad`: ramas para desarrollar nuevas funcionalidades.
+- `fix/nombre-correccion`: ramas para corregir errores.
 
+Los cambios se desarrollarán en ramas independientes y se integrarán en `main` mediante Pull Requests después de su revisión.
+
+## 8.Convención de commits semánticos
+
+Se utilizará una convención de commits semánticos para identificar el propósito de cada cambio:
+
+- `feat:` nuevas funcionalidades.
+- `fix:` corrección de errores.
+- `docs:` cambios en la documentación.
+- `refactor:` mejoras en la estructura del código sin cambiar su comportamiento.
+- `chore:` tareas de configuración y mantenimiento.
+
+Ejemplo: `docs: document cloud architecture`.
