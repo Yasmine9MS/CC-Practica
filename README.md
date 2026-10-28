@@ -2,7 +2,7 @@
 
 ## 1. Descripción del proyecto
 
-El proyecto consistirá en el desarrollo una aplicación web que permite simular la compra y venta de criptomonedas utilizando dinero virtual, donde se podrá consultar los precios de cada moneda. La aplicación obtendrá los precios de las criptomonedas periodicamente a través de una API externa y calculará el valor de los activos del usuario (si los tuviera) en función de los precios actuales. El usuario podrá consultar en su cartera virtual los activos que posee y sus respectivos valores. 
+El proyecto consistirá en el desarrollo de una aplicación web que permite simular la compra y venta de criptomonedas utilizando dinero virtual, donde se podrá consultar los precios de cada moneda. La aplicación obtendrá los precios de las criptomonedas periodicamente a través de una API externa y calculará el valor de los activos del usuario (si los tuviera) en función de los precios actuales. El usuario podrá consultar en su cartera virtual los activos que posee y sus respectivos valores. 
 
 ## 2. Descripción del Dominio
 
