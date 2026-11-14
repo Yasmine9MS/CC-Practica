@@ -2,3 +2,5 @@ uvicorn
 fastapi
 redis
 httpx
+python-dotenv
+psycopg2-binary

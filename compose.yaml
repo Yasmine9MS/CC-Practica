@@ -14,6 +14,7 @@ services:
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
         volumes:
             - postgres_data:/var/lib/postgresql/data
+            - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
         networks:
             - internal
     reverse-proxy:
@@ -30,6 +31,8 @@ services:
             - trading-service
     market-service:
         build: ./market-service
+        environment:
+            COIN_GECKO_API_KEY: ${COIN_GECKO_API_KEY}
         networks:
             - internal
         depends_on:
@@ -41,6 +44,10 @@ services:
         depends_on:
             - database
             - redis
+    frontend:
+        build: ./frontend
+        networks:
+            - internal
 volumes:
     postgres_data:
 
