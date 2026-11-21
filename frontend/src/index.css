@@ -1,0 +1,42 @@
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-primary: #40C4B0;
+  --color-primary-hover: #32A995;
+
+  --color-background: #151B20;
+  --color-surface: #202A30;
+  --color-foreground: #E8F0EF;
+  --color-muted: #A5B5B5;
+  --color-border: #39484D;
+
+  --color-success: #4ADE80;
+  --color-danger: #FB7185;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
