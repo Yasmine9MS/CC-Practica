@@ -1,37 +1,49 @@
+
+import json
 import os
-import httpx
+
+import redis
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
-headers = {
-    "x-cg-demo-api-key": os.getenv("COIN_GECKO_API_KEY")
-}
+redis_client = redis.Redis(
+    host=os.getenv("REDIS_HOST", "redis"),
+    port=int(os.getenv("REDIS_PORT", 6379)),
+    password=os.getenv("REDIS_PASSWORD") or None,
+    db=int(os.getenv("REDIS_DB", 0)),
+    decode_responses=True
+)
 
-def obtainCryptoCurrencies():
-    parameters = {
-        "vs_currency": "eur",
-        "order": "market_cap_desc",
-        "per_page": 100,
-        "page": 1
-    }
 
-    response = httpx.get("https://api.coingecko.com/api/v3/coins/markets?", params=parameters, headers=headers)
+def getCachedCryptoCurrencies():
 
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {"error": "Failed to fetch cryptocurrencies from CoinGecko API."}
+    keys = redis_client.keys("crypto:*")
+
+    cryptocurrencies = []
+
+    for key in keys:
+
+        data = redis_client.get(key)
+
+        if data:
+            cryptocurrencies.append(json.loads(data))
+
+    cryptocurrencies.sort(
+        key=lambda crypto: crypto["symbol"]
+    )
+
+    return {"cryptocurrencies": cryptocurrencies}
+
 
 def obtainCryptoCurrency(symbol: str):
-    parameters = {
-        "vs_currency": "eur",
-        "symbols": symbol.lower()
+
+    data = redis_client.get(f"crypto:{symbol.upper()}")
+
+    if data:
+        return json.loads(data)
+
+    return {
+        "error": f"Cryptocurrency {symbol} not found in cache."
     }
-
-    response = httpx.get("https://api.coingecko.com/api/v3/coins/markets?", params=parameters, headers=headers)
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        return {"error": f"Failed to retrieve {symbol} cryptocurrency from CoinGecko API."}

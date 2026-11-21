@@ -3,3 +3,4 @@ fastapi
 redis
 httpx
 pydantic
+python-dotenv
