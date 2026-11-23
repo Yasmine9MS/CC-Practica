@@ -1,3 +1,4 @@
+
 name: CI - Cloud Native
 
 on:
@@ -15,6 +16,7 @@ jobs:
   lint:
     name: Code and Dockerfile lint
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         include:
@@ -31,12 +33,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Debug Dockerfile paths
-        run: |
-          pwd
-          ls -la
-          find . -name Dockerfile
-
       - name: Check Python code
         if: matrix.service != 'frontend'
         uses: astral-sh/ruff-action@v3
@@ -45,10 +41,13 @@ jobs:
           args: check --select E4,E7,E9,F
 
       - name: Check Dockerfile
-        run: docker run --rm -v "${{ github.workspace }}:/work" hadolint/hadolint "/work/${{ matrix.dockerfile }}"
+        run: |
+          docker run --rm -i hadolint/hadolint < "${{ matrix.dockerfile }}"
+
   tests:
     name: Unit tests
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         include:
@@ -86,7 +85,9 @@ jobs:
     needs:
       - lint
       - tests
+
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     permissions:
       contents: read
       packages: write
