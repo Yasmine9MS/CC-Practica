@@ -3,3 +3,6 @@ APScheduler==3.10.4
 httpx
 redis
 python-dotenv
+
+pytest
+pytest-cov

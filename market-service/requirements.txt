@@ -4,3 +4,5 @@ redis
 httpx
 pydantic
 python-dotenv
+pytest
+pytest-cov

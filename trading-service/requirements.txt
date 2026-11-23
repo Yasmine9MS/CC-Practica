@@ -6,3 +6,5 @@ python-dotenv
 psycopg2-binary
 PyJWT
 pwdlib[argon2]
+pytest
+pytest-cov
