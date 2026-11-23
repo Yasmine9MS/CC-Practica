@@ -21,13 +21,9 @@ jobs:
       matrix:
         include:
           - service: market-service
-            dockerfile: market-service/Dockerfile
           - service: trading-service
-            dockerfile: trading-service/Dockerfile
           - service: market-updater
-            dockerfile: market-updater/Dockerfile
           - service: frontend
-            dockerfile: frontend/Dockerfile
 
     steps:
       - name: Checkout
@@ -41,8 +37,8 @@ jobs:
           args: check --select E4,E7,E9,F
 
       - name: Check Dockerfile
-        run: |
-          docker run --rm -i hadolint/hadolint < "${{ matrix.dockerfile }}"
+        working-directory: ${{ matrix.service }}
+        run: docker run --rm -i hadolint/hadolint < Dockerfile
 
   tests:
     name: Unit tests
