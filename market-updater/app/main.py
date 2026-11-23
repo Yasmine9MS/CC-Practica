@@ -1,6 +1,5 @@
 
 import logging
-import time
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 
