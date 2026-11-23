@@ -40,9 +40,7 @@ jobs:
           args: check --select E4,E7,E9,F
 
       - name: Check Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: ${{ matrix.dockerfile }}
+        run: docker run --rm -i hadolint/hadolint < "${{ matrix.dockerfile }}"
 
   tests:
     name: Unit tests
