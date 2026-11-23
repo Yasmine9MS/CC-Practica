@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  lint:
+    lint:
     name: Code and Dockerfile lint
     runs-on: ubuntu-latest
     strategy:
@@ -32,6 +32,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Debug Dockerfile paths
+        run: |
+          pwd
+          ls -la
+          find . -name Dockerfile
+
       - name: Check Python code
         if: matrix.service != 'frontend'
         uses: astral-sh/ruff-action@v3
@@ -41,7 +47,6 @@ jobs:
 
       - name: Check Dockerfile
         run: docker run --rm -v "${{ github.workspace }}:/work" hadolint/hadolint "/work/${{ matrix.dockerfile }}"
-
   tests:
     name: Unit tests
     runs-on: ubuntu-latest
