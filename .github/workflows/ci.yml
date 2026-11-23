@@ -40,10 +40,14 @@ jobs:
           src: ${{ matrix.service }}
           args: check --select E4,E7,E9,F
 
+      - name: Install Hadolint
+        run: |
+          wget -O hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+          chmod +x hadolint
+          sudo mv hadolint /usr/local/bin/hadolint
+
       - name: Check Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: ${{ matrix.dockerfile }}
+        run: hadolint "${{ github.workspace }}/${{ matrix.dockerfile }}"
 
   tests:
     name: Unit tests
