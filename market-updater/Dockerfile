@@ -23,7 +23,7 @@ RUN groupadd --system app \
 COPY --from=builder /install /usr/local
 
 COPY --chown=app:app app/ ./app/
-
+# hadolint ignore=DL3066
 USER app
 
 CMD ["python", "-m", "app.main"]
