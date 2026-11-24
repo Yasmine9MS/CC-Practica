@@ -97,15 +97,16 @@ flowchart TB
         PROXY --> MARKET
         PROXY --> TRADING
 
-        MARKET <-->|"Redis"| REDIS
-        TRADING <-->|"Redis"| REDIS
-        TRADING -->|"PostgreSQL"| DB
-        UPDATER -->|"Actualización de precios"| REDIS
-        UPDATER -->|"HTTPS"| EXT
+        UPDATER -->|"Escritura de precios"| REDIS
+        REDIS -->|"Lectura de precios"| MARKET
+        REDIS -->|"Lectura de precios"| TRADING
+
+        TRADING -->|"PostgreSQL sobre TCP"| DB
     end
 
     U --> CLI
     CLI -->|"HTTP"| PROXY
+    UPDATER -->|"HTTPS"| EXT
 ```
 
 ### 5.2 Componentes
