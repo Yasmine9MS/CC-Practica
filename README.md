@@ -26,7 +26,7 @@ Por este motivo, se propone diseñar y desarrollar una aplicación web que permi
 
 **CU06 - Recargar saldo.** El usuario puede añadir saldo virtual cuando el suyo sea inferior a 100 EUR. Como máximo puede recargar hasta 10,000 EUR.
 
-**CU07 - Actualizar precios (sistema).** El Market Service consulta periódicamente la API externa y actualiza la caché compartida. El market service leerá de esta caché para proporcionar esa información a los usuarios mientras que el Trading service lo utilizará para obtener los precios necesarios para simular las operaciones compra y venta.
+**CU07 - Actualizar precios (sistema).** El Market Updater consulta periódicamente la API externa y actualiza la caché compartida Redis. El Market Service lee los precios almacenados en esta caché para proporcionarlos a los usuarios, mientras que el Trading Service los utiliza para simular las operaciones de compra y venta.
 
 ## 3. Características Cloud según NIST SP 800-145 y Justificación del uso de la nube
 
@@ -81,33 +81,40 @@ A continuación se muestra el diagrama de arquitectura del sistema, con los comp
 ```mermaid
 flowchart TB
     U["Usuario"]
-    CLI["Cliente web o herramienta HTTP"]
+    CLI["Navegador web"]
     EXT["API externa de precios"]
 
-    subgraph AWS["AWS"]
-        PROXY["Proxy inverso"]
-        MARKET["Market Service"]
-        TRADING["Trading Service"]
-        REDIS[("Redis - caché de precios")]
-        DB[("PostgreSQL - usuarios, saldos y activos")]
+    subgraph DOCKER["Entorno Docker Compose"]
+        PROXY["Nginx - Reverse Proxy"]
+        FRONT["Frontend - React / Vite"]
+        MARKET["Market Service - FastAPI"]
+        TRADING["Trading Service - FastAPI"]
+        UPDATER["Market Updater"]
+        REDIS[("Redis - Caché de precios")]
+        DB[("PostgreSQL - Usuarios, saldos y activos")]
+
+        PROXY --> FRONT
+        PROXY --> MARKET
+        PROXY --> TRADING
+
+        MARKET <-->|"Redis"| REDIS
+        TRADING <-->|"Redis"| REDIS
+        TRADING -->|"PostgreSQL"| DB
+        UPDATER -->|"Actualización de precios"| REDIS
+        UPDATER -->|"HTTPS"| EXT
     end
 
     U --> CLI
     CLI -->|"HTTP"| PROXY
-    PROXY -->|"/api/market/*"| MARKET
-    PROXY -->|"/api/*"| TRADING
-
-    MARKET -->|"HTTPS - consulta periódica"| EXT
-    MARKET <-->|"Redis sobre TCP - lectura y escritura"| REDIS
-    TRADING -->|"Redis sobre TCP - lectura"| REDIS
-    TRADING -->|"PostgreSQL sobre TCP"| DB
 ```
 
 ### 5.2 Componentes
 
-El simulador será una arquitectura basado en microservicios. En concreto, estará formado por dos microservicios principales: Trading Service y Market Service. A continuación se detallan sus respectivas responsabilidades 
+El simulador sigue una arquitectura basada en microservicios, formada por dos microservicios principales: Market Service y Trading Service. Además, incorpora un servicio independiente para la actualización de precios y un frontend web.
 
-- Market Service: El servicio permite obtener y actualizar los precios de las criptomonedas.
+- Market Service: microservicio FastAPI encargado de proporcionar información sobre los precios de las criptomonedas almacenados en Redis.
+
+- Market Updater: servicio encargado de consultar periódicamente la API externa de precios y actualizar la caché compartida.
 
 - Trading Service: Este microservicio permite gestionar las compras y ventas de las criptomonedas, administra el saldo virtual de los usuarios junto con el registro e inicio de sesión.
 
